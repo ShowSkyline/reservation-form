@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exclusive Travel Booking Form</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        
+        .video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            overflow: hidden;
+        }
+        
+        .video-background {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+        }
+        
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: -1;
+        }
+
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 400;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+            font-family: 'Lato', sans-serif;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-transform: uppercase;
+            text-align: left;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .show-referral-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .show-referral-section .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .show-referral-section .form-group {
+            margin-bottom: 0;
+        }
+
+        .show-referral-section label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 14px;
+        }
+
+        .show-referral-section input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .show-referral-section input:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        .show-referral-section input::placeholder {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .skyline-logo {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            height: 60px;
+            width: auto;
+            z-index: 10;
+        }
+
+        .form-content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            margin: 0 -30px 20px -30px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            align-items: end;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group.small {
+            flex: 0.3;
+        }
+
+        .form-group.medium {
+            flex: 0.5;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .terms-section {
+            background: #f9f9f9;
+            padding: 20px;
+            margin: 0 -30px;
+            border-top: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .terms-text {
+            font-size: 11px;
+            line-height: 1.4;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .terms-box {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 1px solid #ddd;
+        }
+        
+        .terms-box p {
+            margin-bottom: 15px;
+        }
+
+        .contact-info {
+            background: #7c3aed;
+            color: white;
+            padding: 15px 20px;
+            margin: 20px -30px 0 -30px;
+            font-size: 12px;
+        }
+
+        .guest-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .guest-table th,
+        .guest-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .guest-table th {
+            background: #7c3aed;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .guest-table input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .add-guest-btn {
+            background: #7c3aed;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .add-guest-btn:hover {
+            background: #6d28d9;
+        }
+
+        .signature-pad {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: crosshair;
+            background: white;
+        }
+
+        .signature-controls {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .signature-btn {
+            padding: 6px 12px;
+            border: 1px solid #7c3aed;
+            background: white;
+            color: #7c3aed;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .signature-btn:hover {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(124, 58, 237, 0.2);
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .submit-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .success-message {
+            background: #f0fdf4;
+            color: #059669;
+            border: 1px solid #bbf7d0;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .contact-info h3 {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .guest-distribution {
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            margin: 20px -30px 0 -30px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .underline {
+            border-bottom: 1px solid #333;
+            display: inline-block;
+            min-width: 100px;
+            margin: 0 5px;
+        }
+
+        .signature-line {
+            border-bottom: 1px solid #333;
+            min-width: 200px;
+            display: inline-block;
+            margin: 0 10px;
+        }
+
+        .date-range-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .date-separator {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .checkin-date, .checkout-date {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .nights-count {
+            font-weight: bold;
+            color: #8B4A9C;
+            text-align: center;
+        }
+        
+        .signature-button-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .signature-toggle-btn {
+            background: #8B4A9C;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .signature-toggle-btn:hover {
+            background: #7a3f8a;
+        }
+        
+        .signature-section {
+            margin: 20px 0;
+        }
+        
+        .signature {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #8B4A9C;
+            border-radius: 5px;
+            background: #f8f4f9;
+        }
+        
+        .signature label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #8B4A9C;
+        }
+        
+        #signatureCanvas {
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: crosshair;
+            background: white;
+        }
+        
+        .signature-controls {
+            margin-top: 10px;
+        }
+        
+        .pdf-controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .submit-btn {
+            background: #8B4A9C;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+        
+        .submit-btn:hover {
+            background: #7a3f87;
+        }
+
+        /* Tab navigation tip indicators */
+        .tab-tip {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background-color: #f0f0f0;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 16px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #666;
+            margin-right: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .tab-tip.active {
+            background-color: #007bff;
+            border-color: #007bff;
+            color: white;
+        }
+
+        .tab-tip.completed {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="videoContainer" class="video-container">
+        <video id="bgVideo" class="video-background" autoplay muted loop playsinline>
+            <source src="https://skylinehousing.net/wp-content/uploads/2025/08/855677-hd_1920_1080_30fps.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+    <div class="form-container">
+        <form class="booking-form" method="POST" action="/submit-form" enctype="multipart/form-data">
+            <input type="hidden" name="subject" value="New Reservation Request">
+            <input type="hidden" name="from_name" value="Reservation Form">
+        <div class="header">
+            <img src="https://skylinehousing.net/wp-content/uploads/2023/04/Color-logo-no-background.png" alt="Skyline Housing Logo" class="skyline-logo">
+            <h1>EXCLUSIVE TRAVEL</h1>
+            <h1>BOOKING FORM</h1>
+        </div>
+
+        <div class="show-referral-section">
+            <div class="form-row">
+                <div class="form-group">
+                    <label><span class="tab-tip" data-tab="1">1</span>Show Name:</label>
+                    <input type="text" name="show_name" placeholder="Enter show or event name" required tabindex="1">
+                </div>
+                <div class="form-group">
+                    <label><span class="tab-tip" data-tab="2">2</span>Referral Source:</label>
+                    <input type="text" name="referral" placeholder="How did you hear about us?" tabindex="2">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-content">
+            <!-- Property Information Section -->
+            <div class="section">
+                <div class="section-header">🏠 Property Information</div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="3">3</span>Hotel Name:</label>
+                        <input type="text" name="hotel_name" tabindex="3">
+                    </div>
+                    <div class="form-group small">
+                        <label><span class="tab-tip" data-tab="4">4</span>Rooms:</label>
+                        <input type="text" name="rooms" tabindex="4">
+                    </div>
+                    <div class="form-group small">
+                        <label><span class="tab-tip" data-tab="5">5</span>Nights:</label>
+                        <input type="text" name="nights" tabindex="5">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="6">6</span>Booking Type:</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" tabindex="6"> King</label>
+                            <label><input type="checkbox" tabindex="7"> Two Queens</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="8">8</span>Boarding Type:</label>
+                        <select name="boarding_type" required tabindex="8">
+                            <option value="">Select boarding type</option>
+                            <option value="room_only">Room Only</option>
+                            <option value="bed_breakfast">Bed & Breakfast</option>
+                            <option value="half_board">Half Board</option>
+                            <option value="full_board">Full Board</option>
+                            <option value="all_inclusive">All Inclusive</option>
+                        </select>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <!-- Exhibitions & Company Info Section -->
+            <div class="section">
+                <div class="section-header">🏢 Exhibitions & Company Info</div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="9">9</span>Future Exhibitions:</label>
+                        <input type="text" name="future_exhibitions" tabindex="9">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="10">10</span>Company:</label>
+                        <input type="text" name="company" tabindex="10">
+                    </div>
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="11">11</span>Leader Name:</label>
+                        <input type="text" name="leader_name" tabindex="11">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="12">12</span>Billing Address:</label>
+                        <input type="text" name="billing_address" tabindex="12">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="13">13</span>Card Holder Name:</label>
+                        <input type="text" name="card_holder_name" tabindex="13">
+                    </div>
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="14">14</span>Today's Date:</label>
+                        <input type="date" name="todays_date" tabindex="14">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="15">15</span>Expiry:</label>
+                        <input type="text" name="expiry" tabindex="15">
+                    </div>
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="16">16</span>CVV:</label>
+                        <input type="text" name="cvv" tabindex="16">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information Section -->
+            <div class="section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="17">17</span>Direct Number:</label>
+                        <input type="tel" name="direct_number" placeholder="Enter direct phone number" tabindex="17">
+                    </div>
+                    <div class="form-group">
+                        <label><span class="tab-tip" data-tab="18">18</span>Email:</label>
+                        <input type="email" name="email" placeholder="Enter email address" required tabindex="18">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terms & Conditions Section -->
+            <div class="section">
+                <div class="section-header">📋 TERMS & CONDITIONS</div>
+                
+                <div class="terms-section">
+                    <div class="terms-text">
+                        Skyline Housing Inc. is a service that provides pre-paid room accommodations. Skyline Housing Inc. is able to provide this service at a competitive savings because we reserve, hold and pre-pay for the rooms of clients at the time of the reservation. The credit card provided will be charged for deposit/full price for setting up, arranging, confirming and providing the ability for you to receive pre-paid room accommodations.
+                        <br><br>
+                        <strong>Confirmation / Change in plans:</strong> to make any changes please email reservations@skylinehousing.net. Changing your services is subject to hotel approval and consent. While there is no guarantee that Skyline Housing Inc. will be able to accommodate the requested changes, the rate agreed upon is based on the number of rooms and nights reserved; adding, removing, changing nights or degradation for reservation made cannot guarantee the original rate. We will take every effort to adjust, change and seek our customer's utmost satisfaction.
+                        <br><br>
+                        Skyline Housing Inc. will not be held accountable for any unexpected changes controlled by our contracted wholesalers. Thus, changes made after final accommodation/service is agreed upon, but prior to 15 days before check-in date will not be assessed a fee. Refunds due to reservation changes will be processed within 15 days of the request. Any changes made prior to the check-in date are not guaranteed depending on hotel availability or rates at that time.
+                        <br><br>
+                        You agree to pay a cancellation fee in the amount of one-night deposit per room canceled. However, cancellation fees may be used for future reservations. Skyline Housing Inc. is unable to accept cancellation requests within 15 business days prior to check-in as one-night penalty will be applied.
+                        <br><br>
+                        Skyline Housing Inc. does not provide refunds for early cancellation or no-show unless proof of not attending is given. It is not liable for flight cancellations, delays, hotel house rules, or alternative bookings. Skyline Housing Inc. will not be responsible for the services provided by hotels, injuries during your stay, or duplicate bookings made by your party.
+                        <br><br>
+                        The law governing this Authorization, Terms and Conditions, and Cancellation Policy is the law of the State of Michigan, USA. The jurisdiction for all disputes is Michigan courts.
+                        <br><br>
+                        <em>*All average prices per reservation exclude any taxes and applicable service fees which will be added to your final bill. All monies will be billed in U.S. Dollars ($).</em>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><span class="tab-tip" data-tab="19">19</span><input type="checkbox" name="terms_accepted" required tabindex="19"> I agree to the terms and conditions</label>
+                        </div>
+                    </div>
+                    
+
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cardholder Signature:</label>
+                            <div class="signature-line"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signature Button -->
+            <div class="signature-button-container">
+                <button type="button" class="signature-toggle-btn" onclick="toggleSignature()">Show Cardholder Signature</button>
+            </div>
+
+            <!-- Signature Box (Hidden by default) -->
+            <div class="signature-section" id="signatureSection" style="display: none;">
+                <div class="signature">
+                    <label for="signature">Cardholder Signature:</label>
+                    <canvas id="signatureCanvas" width="400" height="150"></canvas>
+                    <div class="signature-controls">
+                        <button type="button" class="signature-btn" onclick="clearSignature()">Clear</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guest Names & Room Distribution -->
+            <div class="section">
+                <div class="section-header">👥 Guest Names & Room Distribution</div>
+                <table class="guest-table" id="guestTable">
+                    <thead>
+                        <tr>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Date Range</th>
+                            <th>Nights</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="guestTableBody">
+                        <tr>
+                            <td><input type="text" name="first_name[]" placeholder="First name" required></td>
+                            <td><input type="text" name="last_name[]" placeholder="Last name" required></td>
+                            <td>
+                                <div class="date-range-container">
+                                    <input type="date" name="guest_checkin[]" class="checkin-date" required>
+                                    <span class="date-separator">to</span>
+                                    <input type="date" name="guest_checkout[]" class="checkout-date" required>
+                                </div>
+                            </td>
+                            <td><span class="nights-count">0</span></td>
+                            <td><button type="button" class="signature-btn" onclick="removeGuest(this)">Remove</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" class="add-guest-btn" onclick="addGuest()">Add Guest</button>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-row">
+                <div class="form-group">
+                    <span class="tab-tip" data-tab="20">20</span><button type="submit" class="submit-btn" tabindex="20">Submit Form</button>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="contact-info">
+                <h3>📞 Reservations / Customer Service</h3>
+                <div>Skyline Housing Inc. | 400 Renaissance Center Suite #2600, Detroit | +1 877-780-4512</div>
+                <div>reservations@skylinehousing.net | https://exclusiveskyline.com</div>
+            </div>
+
+
+
+
+            
+            <div class="message error-message" id="errorMessage"></div>
+            <div class="message success-message" id="successMessage"></div>
+
+            <script>
+                function addGuest() {
+                    const tbody = document.getElementById('guestTableBody');
+                    const newRow = tbody.insertRow();
+                    newRow.innerHTML = `
+                        <td><input type="text" name="first_name[]" placeholder="First name" required></td>
+                        <td><input type="text" name="last_name[]" placeholder="Last name" required></td>
+                        <td>
+                            <div class="date-range-container">
+                                <input type="date" name="guest_checkin[]" class="checkin-date" required>
+                                <span class="date-separator">to</span>
+                                <input type="date" name="guest_checkout[]" class="checkout-date" required>
+                            </div>
+                        </td>
+                        <td><span class="nights-count">0</span></td>
+                        <td><button type="button" class="signature-btn" onclick="removeGuest(this)">Remove</button></td>
+                    `;
+                }
+
+                function removeGuest(button) {
+                    const row = button.closest('tr');
+                    const tbody = document.getElementById('guestTableBody');
+                    if (tbody.rows.length > 1) {
+                        row.remove();
+                    }
+                }
+
+
+
+
+
+                // Form submission handling
+                document.querySelector('.booking-form').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const submitBtn = document.querySelector('.submit-btn');
+                    const errorMsg = document.getElementById('errorMessage');
+                    const successMsg = document.getElementById('successMessage');
+                    
+                    // Hide previous messages
+                    errorMsg.style.display = 'none';
+                    successMsg.style.display = 'none';
+                    
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="loading-spinner"></span>Submitting...';
+                    
+                    try {
+                        const formData = new FormData(this);
+                        const response = await fetch(this.action, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (response.ok) {
+                            successMsg.textContent = 'Reservation request submitted successfully!';
+                            successMsg.style.display = 'block';
+                            this.reset();
+                            clearSignature();
+                        } else {
+                            throw new Error('Submission failed');
+                        }
+                    } catch (error) {
+                        errorMsg.textContent = 'Error submitting form. Please try again.';
+                        errorMsg.style.display = 'block';
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Submit Booking Request';
+                    }
+                });
+
+                // Date range validation and night calculation
+                document.addEventListener('change', function(e) {
+                    if (e.target.classList.contains('checkin-date') || e.target.classList.contains('checkout-date')) {
+                        const row = e.target.closest('tr');
+                        const checkinInput = row.querySelector('.checkin-date');
+                        const checkoutInput = row.querySelector('.checkout-date');
+                        const nightsSpan = row.querySelector('.nights-count');
+                        
+                        if (e.target.classList.contains('checkin-date')) {
+                            const checkinDate = new Date(e.target.value);
+                            const minCheckout = new Date(checkinDate);
+                            minCheckout.setDate(minCheckout.getDate() + 1);
+                            checkoutInput.min = minCheckout.toISOString().split('T')[0];
+                        }
+                        
+                        // Calculate nights
+                        if (checkinInput.value && checkoutInput.value) {
+                            const checkin = new Date(checkinInput.value);
+                            const checkout = new Date(checkoutInput.value);
+                            const timeDiff = checkout.getTime() - checkin.getTime();
+                            const nights = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                            nightsSpan.textContent = nights > 0 ? nights : 0;
+                        } else {
+                            nightsSpan.textContent = '0';
+                        }
+                    }
+                });
+
+
+                
+                // Signature functionality
+                 let isDrawing = false;
+                 let signatureCanvas, signatureCtx;
+                 
+                 function toggleSignature() {
+                     console.log('toggleSignature called');
+                     const section = document.getElementById('signatureSection');
+                     const button = document.querySelector('.signature-toggle-btn');
+                     console.log('section', section);
+                     console.log('button', button);
+                     
+                     if (section.style.display === 'none' || section.style.display === '') {
+                         console.log('showing signature');
+                         section.style.display = 'block';
+                         button.textContent = 'Hide Cardholder Signature';
+                         initializeSignatureCanvas();
+                     } else {
+                         console.log('hiding signature');
+                         section.style.display = 'none';
+                         button.textContent = 'Show Cardholder Signature';
+                     }
+                 }
+                 
+                 function initializeSignatureCanvas() {
+                     signatureCanvas = document.getElementById('signatureCanvas');
+                     if (!signatureCanvas) return;
+                     
+                     signatureCtx = signatureCanvas.getContext('2d');
+                     
+                     // Clear any existing event listeners
+                     signatureCanvas.removeEventListener('mousedown', startSignatureDrawing);
+                     signatureCanvas.removeEventListener('mousemove', drawSignature);
+                     signatureCanvas.removeEventListener('mouseup', stopSignatureDrawing);
+                     signatureCanvas.removeEventListener('mouseout', stopSignatureDrawing);
+                     signatureCanvas.removeEventListener('touchstart', handleSignatureTouch);
+                     signatureCanvas.removeEventListener('touchmove', handleSignatureTouch);
+                     signatureCanvas.removeEventListener('touchend', stopSignatureDrawing);
+                     
+                     // Add event listeners
+                     signatureCanvas.addEventListener('mousedown', startSignatureDrawing);
+                     signatureCanvas.addEventListener('mousemove', drawSignature);
+                     signatureCanvas.addEventListener('mouseup', stopSignatureDrawing);
+                     signatureCanvas.addEventListener('mouseout', stopSignatureDrawing);
+                     
+                     // Touch events for mobile
+                     signatureCanvas.addEventListener('touchstart', handleSignatureTouch);
+                     signatureCanvas.addEventListener('touchmove', handleSignatureTouch);
+                     signatureCanvas.addEventListener('touchend', stopSignatureDrawing);
+                     
+                     // Set white background
+                     signatureCtx.fillStyle = 'white';
+                     signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                 }
+                 
+                 function startSignatureDrawing(e) {
+                     isDrawing = true;
+                     drawSignature(e);
+                 }
+                 
+                 function drawSignature(e) {
+                     if (!isDrawing || !signatureCtx) return;
+                     
+                     const rect = signatureCanvas.getBoundingClientRect();
+                     const x = e.clientX - rect.left;
+                     const y = e.clientY - rect.top;
+                     
+                     signatureCtx.lineWidth = 2;
+                     signatureCtx.lineCap = 'round';
+                     signatureCtx.strokeStyle = '#000';
+                     
+                     signatureCtx.lineTo(x, y);
+                     signatureCtx.stroke();
+                     signatureCtx.beginPath();
+                     signatureCtx.moveTo(x, y);
+                 }
+                 
+                 function stopSignatureDrawing() {
+                     if (isDrawing && signatureCtx) {
+                         isDrawing = false;
+                         signatureCtx.beginPath();
+                         // Display signature in cardholder signature field
+                         displaySignatureInField();
+                     }
+                 }
+                 
+                 function displaySignatureInField() {
+                     if (signatureCanvas) {
+                         // Convert canvas to image
+                         const signatureDataURL = signatureCanvas.toDataURL();
+                         
+                         // Find the cardholder signature line and replace with image
+                         const labels = document.querySelectorAll('label');
+                         for (let label of labels) {
+                             if (label.textContent.includes('Cardholder Signature:')) {
+                                 const signatureLineDiv = label.parentElement.querySelector('.signature-line');
+                                 if (signatureLineDiv) {
+                                     updateSignatureDisplay(signatureLineDiv, signatureDataURL);
+                                     break;
+                                 }
+                             }
+                         }
+                     }
+                 }
+                 
+                 function updateSignatureDisplay(signatureLineDiv, signatureDataURL) {
+                     // Clear existing content
+                     signatureLineDiv.innerHTML = '';
+                     
+                     // Create and add signature image
+                     const img = document.createElement('img');
+                     img.src = signatureDataURL;
+                     img.style.maxWidth = '200px';
+                     img.style.height = 'auto';
+                     img.style.border = '1px solid #ccc';
+                     signatureLineDiv.appendChild(img);
+                 }
+                 
+                 function handleSignatureTouch(e) {
+                     e.preventDefault();
+                     const touch = e.touches[0];
+                     const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
+                                                      e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+                         clientX: touch.clientX,
+                         clientY: touch.clientY
+                     });
+                     signatureCanvas.dispatchEvent(mouseEvent);
+                 }
+                 
+                 function clearSignature() {
+                     if (signatureCtx && signatureCanvas) {
+                         signatureCtx.fillStyle = 'white';
+                         signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                         
+                         // Also clear the displayed signature in the cardholder field
+                         const labels = document.querySelectorAll('label');
+                         for (let label of labels) {
+                             if (label.textContent.includes('Cardholder Signature:')) {
+                                 const signatureLineDiv = label.parentElement.querySelector('.signature-line');
+                                 if (signatureLineDiv) {
+                                     signatureLineDiv.innerHTML = '';
+                                     break;
+                                 }
+                             }
+                         }
+                     }
+                 }
+                 
+                 // Video initialization
+                 function initializeVideo() {
+                     const video = document.getElementById('bgVideo');
+                     const videoContainer = document.getElementById('videoContainer');
+                     
+                     if (!video) return;
+                     
+                     function attemptPlay() {
+                         const playPromise = video.play();
+                         if (playPromise !== undefined) {
+                             playPromise.catch(error => {
+                                 // Video will remain paused, but that's okay
+                                 console.log('Video autoplay prevented:', error);
+                             });
+                         }
+                     }
+                     
+                     // Try to play when video data is loaded
+                     video.addEventListener('loadeddata', attemptPlay);
+                     video.addEventListener('canplay', attemptPlay);
+                     
+                     // Try to play immediately
+                     attemptPlay();
+                 }
+                 
+                 // PDF Generation Function (for internal use)
+                  function createPDF(formData) {
+                      const { jsPDF } = window.jspdf;
+                      const pdf = new jsPDF('p', 'mm', 'a4');
+                      
+                      // Add header
+                      pdf.setFontSize(20);
+                      pdf.setTextColor(139, 74, 156);
+                      pdf.text('EXCLUSIVE TRAVEL BOOKING FORM', 20, 20);
+                      
+                      let yPosition = 40;
+                      
+                      // Personal Information
+                      pdf.setFontSize(14);
+                      pdf.setTextColor(139, 74, 156);
+                      pdf.text('Personal Information:', 20, yPosition);
+                      yPosition += 10;
+                      
+                      pdf.setFontSize(10);
+                      pdf.setTextColor(0, 0, 0);
+                      if (formData.firstName) pdf.text(`First Name: ${formData.firstName}`, 20, yPosition += 8);
+                      if (formData.lastName) pdf.text(`Last Name: ${formData.lastName}`, 20, yPosition += 8);
+                      if (formData.customerEmail) pdf.text(`Email: ${formData.customerEmail}`, 20, yPosition += 8);
+                      if (formData.phone) pdf.text(`Phone: ${formData.phone}`, 20, yPosition += 8);
+                      if (formData.directNumber) pdf.text(`Direct Number: ${formData.directNumber}`, 20, yPosition += 8);
+                      if (formData.address) pdf.text(`Address: ${formData.address}`, 20, yPosition += 8);
+                      
+                      yPosition += 10;
+                      
+                      // Booking Information
+                      pdf.setFontSize(14);
+                      pdf.setTextColor(139, 74, 156);
+                      pdf.text('Booking Information:', 20, yPosition);
+                      yPosition += 10;
+                      
+                      pdf.setFontSize(10);
+                      pdf.setTextColor(0, 0, 0);
+                      if (formData.boardingType) pdf.text(`Boarding Type: ${formData.boardingType}`, 20, yPosition += 8);
+                      if (formData.specialRequests) pdf.text(`Special Requests: ${formData.specialRequests}`, 20, yPosition += 8);
+                      
+                      yPosition += 10;
+                      
+                      // Guest Information
+                      pdf.setFontSize(14);
+                      pdf.setTextColor(139, 74, 156);
+                      pdf.text('Guest Information:', 20, yPosition);
+                      yPosition += 10;
+                      
+                      pdf.setFontSize(10);
+                      pdf.setTextColor(0, 0, 0);
+                      
+                      // Get guest data from table
+                      const guestRows = document.querySelectorAll('#guestTableBody tr');
+                      guestRows.forEach((row, index) => {
+                          const cells = row.querySelectorAll('td');
+                          if (cells.length >= 4) {
+                              const firstName = cells[0].querySelector('input')?.value || '';
+                              const lastName = cells[1].querySelector('input')?.value || '';
+                              const dateRange = cells[2].querySelector('input')?.value || '';
+                              const nights = cells[3].textContent || '';
+                              
+                              if (firstName || lastName) {
+                                  pdf.text(`Guest ${index + 1}: ${firstName} ${lastName}`, 20, yPosition += 8);
+                                  if (dateRange) pdf.text(`  Date Range: ${dateRange}`, 25, yPosition += 6);
+                                  if (nights) pdf.text(`  Nights: ${nights}`, 25, yPosition += 6);
+                              }
+                          }
+                      });
+                      
+                      // Add signature if available
+                      if (signatureCanvas && signatureCtx) {
+                          const signatureDataURL = signatureCanvas.toDataURL('image/png');
+                          
+                          // Check if signature is not blank
+                          const blankCanvas = document.createElement('canvas');
+                          blankCanvas.width = signatureCanvas.width;
+                          blankCanvas.height = signatureCanvas.height;
+                          const blankCtx = blankCanvas.getContext('2d');
+                          blankCtx.fillStyle = 'white';
+                          blankCtx.fillRect(0, 0, blankCanvas.width, blankCanvas.height);
+                          
+                          if (signatureDataURL !== blankCanvas.toDataURL()) {
+                              yPosition += 20;
+                              pdf.setFontSize(14);
+                              pdf.setTextColor(139, 74, 156);
+                              pdf.text('Cardholder Signature:', 20, yPosition);
+                              yPosition += 10;
+                              
+                              // Add signature image
+                              pdf.addImage(signatureDataURL, 'PNG', 20, yPosition, 80, 30);
+                          }
+                      }
+                      
+                      // Add timestamp
+                      yPosition += 50;
+                      pdf.setFontSize(8);
+                      pdf.setTextColor(100, 100, 100);
+                      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 20, yPosition);
+                      
+                      return pdf;
+                  }
+                 
+                 // Enhanced form submission with PDF attachment
+                  document.querySelector('.booking-form').addEventListener('submit', async function(e) {
+                      e.preventDefault();
+                      
+                      // Get form data
+                      const formData = new FormData(this);
+                      const data = {};
+                      for (let [key, value] of formData.entries()) {
+                          data[key] = value;
+                      }
+                      
+                      // Rename customer email field to avoid conflict
+                      if (data.email && data.email !== 'reservations@skylinehousing.net') {
+                          formData.set('customerEmail', data.email);
+                          data.customerEmail = data.email;
+                      }
+                      
+                      // Generate PDF
+                      const pdf = createPDF(data);
+                      
+                      // Add signature if available
+                      if (signatureCanvas && signatureCtx) {
+                          const signatureDataURL = signatureCanvas.toDataURL('image/png');
+                          formData.append('signature', signatureDataURL);
+                      }
+                      
+                      // Convert PDF to blob and add to form data
+                      const pdfBlob = pdf.output('blob');
+                      formData.append('pdf_attachment', pdfBlob, `booking_form_${data.firstName || 'guest'}_${new Date().getTime()}.pdf`);
+                      
+                      // Submit form with PDF attachment to Node.js server
+                      try {
+                          const response = await fetch('/submit-form', {
+                              method: 'POST',
+                              body: formData
+                          });
+                          
+                          const result = await response.json();
+                          
+                          if (response.ok && result.success) {
+                              alert(result.message || 'Form submitted successfully! A copy with PDF attachment has been sent to reservations@skylinehousing.net');
+                              this.reset();
+                              // Clear signature
+                              if (signatureCtx && signatureCanvas) {
+                                  signatureCtx.fillStyle = 'white';
+                                  signatureCtx.fillRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                              }
+                              // Clear displayed signature in cardholder field
+                              const labels = document.querySelectorAll('label');
+                              for (let label of labels) {
+                                  if (label.textContent.includes('Cardholder Signature:')) {
+                                      const signatureLineDiv = label.parentElement.querySelector('.signature-line');
+                                      if (signatureLineDiv) {
+                                          signatureLineDiv.innerHTML = '';
+                                          break;
+                                      }
+                                  }
+                              }
+                              // Hide signature section
+                              const section = document.getElementById('signatureSection');
+                              const button = document.querySelector('.signature-toggle-btn');
+                              if (section && button) {
+                                  section.style.display = 'none';
+                                  button.textContent = 'Show Cardholder Signature';
+                              }
+                          } else {
+                              alert(result.message || 'Error submitting form. Please try again.');
+                          }
+                      } catch (error) {
+                          console.error('Error:', error);
+                          alert('Error submitting form. Please try again.');
+                      }
+                  });
+                 
+                 // Initialize video when page loads
+                 document.addEventListener('DOMContentLoaded', function() {
+                     initializeVideo();
+                     initializeTabNavigation();
+                 });
+
+                 // Tab navigation functionality
+                 function initializeTabNavigation() {
+                     const tabElements = document.querySelectorAll('[tabindex]');
+                     const tabTips = document.querySelectorAll('.tab-tip');
+                     
+                     // Sort elements by tabindex
+                     const sortedElements = Array.from(tabElements).sort((a, b) => {
+                         return parseInt(a.getAttribute('tabindex')) - parseInt(b.getAttribute('tabindex'));
+                     });
+                     
+                     // Add focus event listeners
+                     sortedElements.forEach((element, index) => {
+                         element.addEventListener('focus', function() {
+                             updateTabIndicators(parseInt(this.getAttribute('tabindex')));
+                         });
+                         
+                         element.addEventListener('blur', function() {
+                             markAsCompleted(parseInt(this.getAttribute('tabindex')));
+                         });
+                     });
+                     
+                     // Initialize first tab as active
+                     updateTabIndicators(1);
+                 }
+                 
+                 function updateTabIndicators(activeTab) {
+                     const tabTips = document.querySelectorAll('.tab-tip');
+                     
+                     tabTips.forEach(tip => {
+                         const tabNumber = parseInt(tip.getAttribute('data-tab'));
+                         tip.classList.remove('active', 'completed');
+                         
+                         if (tabNumber === activeTab) {
+                             tip.classList.add('active');
+                         } else if (tabNumber < activeTab) {
+                             tip.classList.add('completed');
+                         }
+                     });
+                 }
+                 
+                 function markAsCompleted(tabNumber) {
+                     const tip = document.querySelector(`[data-tab="${tabNumber}"]`);
+                     if (tip && !tip.classList.contains('active')) {
+                         tip.classList.add('completed');
+                         tip.classList.remove('active');
+                     }
+                 }
+            </script>
+        </form>
+    </div>
+</body>
+</html>

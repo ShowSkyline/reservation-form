@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "reservation_form_replica.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/submit-form",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/reservation_form_replica.html",
+      "dest": "/reservation_form_replica.html"
+    },
+    {
+      "src": "/",
+      "dest": "/reservation_form_replica.html"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
