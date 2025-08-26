@@ -5,6 +5,8 @@ const path = require('path');
 const cors = require('cors');
 const PDFDocument = require('pdfkit');
 const crypto = require('crypto');
+const { PDFDocument: PDFLib } = require('pdf-lib');
+const fs = require('fs').promises;
 
 const app = express();
 
@@ -45,6 +47,48 @@ transporter.verify((error, success) => {
         console.log('Email server is ready to send messages');
     }
 });
+
+// Function to enhance original PDF with signature and form data
+async function enhanceOriginalPDF(originalPDFBuffer, formData, signatureBuffer = null) {
+    try {
+        const pdfDoc = await PDFLib.load(originalPDFBuffer);
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const { width, height } = firstPage.getSize();
+        
+        // Add signature if available
+        if (signatureBuffer) {
+            try {
+                const signatureImage = await pdfDoc.embedPng(signatureBuffer);
+                const signatureDims = signatureImage.scale(0.3);
+                
+                firstPage.drawImage(signatureImage, {
+                    x: width - signatureDims.width - 50,
+                    y: 50,
+                    width: signatureDims.width,
+                    height: signatureDims.height,
+                });
+            } catch (err) {
+                console.error('Error adding signature to PDF:', err);
+            }
+        }
+        
+        // Add timestamp and certification info
+        const timestamp = new Date().toLocaleString();
+        firstPage.drawText(`Digitally processed: ${timestamp}`, {
+            x: 50,
+            y: height - 30,
+            size: 10,
+            color: { r: 0.5, g: 0.5, b: 0.5 }
+        });
+        
+        const pdfBytes = await pdfDoc.save();
+        return Buffer.from(pdfBytes);
+    } catch (error) {
+        console.error('Error enhancing PDF:', error);
+        throw error;
+    }
+}
 
 // Generate comprehensive PDF with all form data
 function generateComprehensivePDF(formData, signatureBuffer = null) {
@@ -99,20 +143,17 @@ function generateComprehensivePDF(formData, signatureBuffer = null) {
             doc.text(`Hotel Name: ${formData.hotel_name || 'N/A'}`);
             doc.text(`Number of Rooms: ${formData.rooms || 'N/A'}`);
             doc.text(`Number of Nights: ${formData.nights || 'N/A'}`);
-            doc.text(`Price / Night: ${formData.price_per_night || 'N/A'}`);
-            doc.text(`Room Type: ${formData.king ? 'King' : formData.two_queens ? 'Two Queens' : 'N/A'}`);
             doc.text(`Boarding Type: ${formData.boarding_type || 'N/A'}`);
+            doc.text(`Price / Night: ${formData.price_per_night || 'N/A'}`);
             doc.moveDown(1);
             
             // Reservation Details Section
-            doc.fontSize(14).fillColor('#2563eb').text('RESERVATION DETAILS', { underline: true });
-            doc.moveDown(0.5);
-            doc.fontSize(11).fillColor('#000');
-            doc.text(`Check-in Date: ${formData.checkin || 'N/A'}`);
-            doc.text(`Check-out Date: ${formData.checkout || 'N/A'}`);
-            doc.text(`Adults: ${formData.adults || 'N/A'}`);
-            doc.text(`Children: ${formData.children || 'N/A'}`);
-            doc.moveDown(1);
+        doc.fontSize(14).fillColor('#333');
+        doc.text('RESERVATION DETAILS', { underline: true });
+        doc.moveDown(0.5);
+        doc.fontSize(11).fillColor('#000');
+        doc.text(`Reservation Date: ${formData.todays_date || new Date().toLocaleDateString()}`);
+        doc.moveDown(1);
             
             // Company Information Section
             doc.fontSize(14).fillColor('#2563eb').text('COMPANY INFORMATION', { underline: true });
@@ -129,16 +170,53 @@ function generateComprehensivePDF(formData, signatureBuffer = null) {
             doc.moveDown(0.5);
             doc.fontSize(11).fillColor('#000');
             
-            // Handle guest arrays
-            const firstNames = Array.isArray(formData['first_name[]']) ? formData['first_name[]'] : [formData['first_name[]']].filter(Boolean);
-            const lastNames = Array.isArray(formData['last_name[]']) ? formData['last_name[]'] : [formData['last_name[]']].filter(Boolean);
-            const checkinDates = Array.isArray(formData['guest_checkin[]']) ? formData['guest_checkin[]'] : [formData['guest_checkin[]']].filter(Boolean);
-            const checkoutDates = Array.isArray(formData['guest_checkout[]']) ? formData['guest_checkout[]'] : [formData['guest_checkout[]']].filter(Boolean);
+            // Handle guest arrays - fix field name extraction
+            const firstNames = [];
+            const lastNames = [];
+            const checkinDates = [];
+            const checkoutDates = [];
             
-            if (firstNames.length > 0) {
-                for (let i = 0; i < firstNames.length; i++) {
-                    doc.text(`Guest ${i + 1}: ${firstNames[i] || 'N/A'} ${lastNames[i] || 'N/A'}`);
-                    doc.text(`  Check-in: ${checkinDates[i] || 'N/A'} | Check-out: ${checkoutDates[i] || 'N/A'}`);
+            // Extract array data from form
+            Object.keys(formData).forEach(key => {
+                if (key.includes('first_name')) {
+                    const value = formData[key];
+                    if (Array.isArray(value)) {
+                        firstNames.push(...value.filter(Boolean));
+                    } else if (value) {
+                        firstNames.push(value);
+                    }
+                } else if (key.includes('last_name')) {
+                    const value = formData[key];
+                    if (Array.isArray(value)) {
+                        lastNames.push(...value.filter(Boolean));
+                    } else if (value) {
+                        lastNames.push(value);
+                    }
+                } else if (key.includes('guest_checkin')) {
+                    const value = formData[key];
+                    if (Array.isArray(value)) {
+                        checkinDates.push(...value.filter(Boolean));
+                    } else if (value) {
+                        checkinDates.push(value);
+                    }
+                } else if (key.includes('guest_checkout')) {
+                    const value = formData[key];
+                    if (Array.isArray(value)) {
+                        checkoutDates.push(...value.filter(Boolean));
+                    } else if (value) {
+                        checkoutDates.push(value);
+                    }
+                }
+            });
+            
+            if (firstNames.length > 0 || lastNames.length > 0) {
+                const maxLength = Math.max(firstNames.length, lastNames.length, checkinDates.length, checkoutDates.length);
+                for (let i = 0; i < maxLength; i++) {
+                    doc.text(`Guest ${i + 1}:`);
+                    doc.text(`  Name: ${(firstNames[i] || '')} ${(lastNames[i] || '')}`.trim() || 'N/A');
+                    doc.text(`  Check-in: ${checkinDates[i] || 'N/A'}`);
+                    doc.text(`  Check-out: ${checkoutDates[i] || 'N/A'}`);
+                    doc.moveDown(0.3);
                 }
             } else {
                 doc.text('No guest information provided');
@@ -249,12 +327,15 @@ app.post('/submit-form', upload.fields([
         <p><strong>Phone:</strong> ${formData.phone || 'N/A'}</p>
         <p><strong>Email:</strong> ${formData.customerEmail || formData.email || 'N/A'}</p>
         
-        <h3>Reservation Details</h3>
-        <p><strong>Check-in Date:</strong> ${formData.checkin || 'N/A'}</p>
-        <p><strong>Check-out Date:</strong> ${formData.checkout || 'N/A'}</p>
+        <h3>Property Information</h3>
+        <p><strong>Hotel Name:</strong> ${formData.hotel_name || 'N/A'}</p>
         <p><strong>Number of Rooms:</strong> ${formData.rooms || 'N/A'}</p>
-        <p><strong>Adults:</strong> ${formData.adults || 'N/A'}</p>
-        <p><strong>Children:</strong> ${formData.children || 'N/A'}</p>
+        <p><strong>Number of Nights:</strong> ${formData.nights || 'N/A'}</p>
+        <p><strong>Boarding Type:</strong> ${formData.boarding_type || 'N/A'}</p>
+        <p><strong>Price per Night:</strong> ${formData.price_per_night || 'N/A'}</p>
+        
+        <h3>Reservation Details</h3>
+        <p><strong>Reservation Date:</strong> ${formData.todays_date || new Date().toLocaleDateString()}</p>
         
         <h3>Company Information</h3>
         <p><strong>Company Name:</strong> ${formData.company_name || 'N/A'}</p>
@@ -289,13 +370,25 @@ app.post('/submit-form', upload.fields([
             contentType: 'application/pdf'
         });
         
-        // Add original PDF attachment if uploaded
+        // Add enhanced original PDF attachment if uploaded (with signature overlay)
         if (files.pdf_attachment && files.pdf_attachment[0]) {
-            mailOptions.attachments.push({
-                filename: `original_upload_${formData.firstName || 'guest'}_${new Date().getTime()}.pdf`,
-                content: files.pdf_attachment[0].buffer,
-                contentType: 'application/pdf'
-            });
+            try {
+                // Create enhanced version of original PDF with signature
+                const enhancedOriginalPDF = await enhanceOriginalPDF(files.pdf_attachment[0].buffer, formData, signatureBuffer);
+                mailOptions.attachments.push({
+                    filename: `enhanced_original_${formData.firstName || 'guest'}_${new Date().getTime()}.pdf`,
+                    content: enhancedOriginalPDF,
+                    contentType: 'application/pdf'
+                });
+            } catch (error) {
+                console.error('Error enhancing original PDF:', error);
+                // Fallback to original PDF without enhancement
+                mailOptions.attachments.push({
+                    filename: `original_upload_${formData.firstName || 'guest'}_${new Date().getTime()}.pdf`,
+                    content: files.pdf_attachment[0].buffer,
+                    contentType: 'application/pdf'
+                });
+            }
         }
         
         // Add signature attachment if available
