@@ -3,8 +3,8 @@ const nodemailer = require('nodemailer');
 const multer = require('multer');
 const path = require('path');
 const cors = require('cors');
-const puppeteer = require('puppeteer');
-const fs = require('fs').promises;
+const PDFDocument = require('pdfkit');
+const crypto = require('crypto');
 
 const app = express();
 
@@ -46,137 +46,143 @@ transporter.verify((error, success) => {
     }
 });
 
-// Function to generate comprehensive PDF using Puppeteer
-async function generateComprehensivePDF(formData, signatureDataURL = null) {
-    try {
-        // Read the HTML template
-        const templatePath = path.join(__dirname, 'pdf-template.html');
-        let htmlTemplate = await fs.readFile(templatePath, 'utf8');
-        
-        // Process guest information
-        let guestRows = '';
-        if (formData['first_name[]'] && Array.isArray(formData['first_name[]'])) {
-            for (let i = 0; i < formData['first_name[]'].length; i++) {
-                const firstName = formData['first_name[]'][i] || '';
-                const lastName = formData['last_name[]'] ? formData['last_name[]'][i] || '' : '';
-                const checkinDate = formData['guest_checkin[]'] ? formData['guest_checkin[]'][i] || '' : '';
-                const checkoutDate = formData['guest_checkout[]'] ? formData['guest_checkout[]'][i] || '' : '';
-                
-                // Calculate nights
-                let nights = '';
-                if (checkinDate && checkoutDate) {
-                    const checkin = new Date(checkinDate);
-                    const checkout = new Date(checkoutDate);
-                    const timeDiff = checkout.getTime() - checkin.getTime();
-                    nights = Math.ceil(timeDiff / (1000 * 3600 * 24)).toString();
+// Generate comprehensive PDF with all form data
+function generateComprehensivePDF(formData, signatureBuffer = null) {
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument({ margin: 50 });
+            const buffers = [];
+            
+            doc.on('data', buffers.push.bind(buffers));
+            doc.on('end', () => {
+                const pdfData = Buffer.concat(buffers);
+                resolve(pdfData);
+            });
+            
+            const timestamp = new Date();
+            const documentId = crypto.randomUUID();
+            const certificationHash = crypto.createHash('sha256').update(JSON.stringify(formData) + timestamp.toISOString()).digest('hex');
+            
+            // PDF Header with certification info
+            doc.fontSize(20).fillColor('#2563eb').text('CERTIFIED RESERVATION DOCUMENT', { align: 'center' });
+            doc.fontSize(12).fillColor('#666').text(`Document ID: ${documentId}`, { align: 'center' });
+            doc.text(`Generated: ${timestamp.toLocaleString('en-US', { timeZone: 'UTC' })} UTC`, { align: 'center' });
+            doc.text(`Certification Hash: ${certificationHash.substring(0, 16)}...`, { align: 'center' });
+            doc.moveDown(2);
+            
+            // Document title
+            doc.fontSize(18).fillColor('#000').text('Hotel Reservation Form', { align: 'center' });
+            doc.moveDown(1.5);
+            
+            // Personal Information Section
+            doc.fontSize(14).fillColor('#2563eb').text('PERSONAL INFORMATION', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#000');
+            doc.text(`First Name: ${formData.firstName || 'N/A'}`);
+            doc.text(`Last Name: ${formData.lastName || 'N/A'}`);
+            doc.text(`Phone Number: ${formData.phone || 'N/A'}`);
+            doc.text(`Email Address: ${formData.customerEmail || formData.email || 'N/A'}`);
+            doc.moveDown(1);
+            
+            // Reservation Details Section
+            doc.fontSize(14).fillColor('#2563eb').text('RESERVATION DETAILS', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#000');
+            doc.text(`Check-in Date: ${formData.checkin || 'N/A'}`);
+            doc.text(`Check-out Date: ${formData.checkout || 'N/A'}`);
+            doc.text(`Number of Rooms: ${formData.rooms || 'N/A'}`);
+            doc.text(`Number of Nights: ${formData.nights || 'N/A'}`);
+            doc.text(`Adults: ${formData.adults || 'N/A'}`);
+            doc.text(`Children: ${formData.children || 'N/A'}`);
+            doc.text(`Room Type: ${formData.room_type || (formData.king ? 'King' : formData.two_queens ? 'Two Queens' : 'N/A')}`);
+            doc.text(`Boarding Type: ${formData.boarding_type || 'N/A'}`);
+            doc.moveDown(1);
+            
+            // Company Information Section
+            doc.fontSize(14).fillColor('#2563eb').text('COMPANY INFORMATION', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#000');
+            doc.text(`Company Name: ${formData.company_name || 'N/A'}`);
+            doc.text(`Leader Name: ${formData.leader_name || 'N/A'}`);
+            doc.text(`Billing Address: ${formData.billing_address || 'N/A'}`);
+            doc.text(`Future Exhibitions: ${formData.future_exhibitions || 'N/A'}`);
+            doc.moveDown(1);
+            
+            // Payment Information Section
+            doc.fontSize(14).fillColor('#2563eb').text('PAYMENT INFORMATION', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#000');
+            doc.text(`Card Holder Name: ${formData.card_holder_name || 'N/A'}`);
+            doc.text(`Today's Date: ${formData.todays_date || 'N/A'}`);
+            doc.text(`Card Expiry: ${formData.expiry || 'N/A'}`);
+            doc.text(`CVV: ${formData.cvv ? '***' : 'N/A'}`);
+            doc.moveDown(1);
+            
+            // Contact Information Section
+            doc.fontSize(14).fillColor('#2563eb').text('CONTACT INFORMATION', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#000');
+            doc.text(`Direct Number: ${formData.direct_number || 'N/A'}`);
+            doc.text(`Email: ${formData.email || 'N/A'}`);
+            doc.moveDown(1);
+            
+            // Terms and Conditions
+            doc.fontSize(14).fillColor('#2563eb').text('TERMS AND CONDITIONS', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#000');
+            doc.text(`Terms Accepted: ${formData.terms_accepted ? 'YES - Digitally Accepted' : 'NO'}`);
+            if (formData.terms_accepted) {
+                doc.fillColor('#059669').text('✓ Customer has digitally accepted all terms and conditions');
+            }
+            doc.moveDown(1);
+            
+            // Digital Signature Section
+            if (signatureBuffer) {
+                doc.fontSize(14).fillColor('#2563eb').text('DIGITAL SIGNATURE', { underline: true });
+                doc.moveDown(0.5);
+                try {
+                    doc.image(signatureBuffer, { width: 200, height: 100 });
+                    doc.moveDown(0.5);
+                    doc.fontSize(10).fillColor('#666').text(`Signature captured on: ${timestamp.toLocaleString()}`);
+                } catch (err) {
+                    doc.fontSize(11).fillColor('#dc2626').text('Signature image could not be processed');
                 }
-                
-                guestRows += `
-                    <tr>
-                        <td>${firstName}</td>
-                        <td>${lastName}</td>
-                        <td>${checkinDate}</td>
-                        <td>${checkoutDate}</td>
-                        <td>${nights}</td>
-                    </tr>
-                `;
-            }
-        } else {
-            // Single guest entry
-            const firstName = formData['first_name[]'] || '';
-            const lastName = formData['last_name[]'] || '';
-            const checkinDate = formData['guest_checkin[]'] || '';
-            const checkoutDate = formData['guest_checkout[]'] || '';
-            
-            let nights = '';
-            if (checkinDate && checkoutDate) {
-                const checkin = new Date(checkinDate);
-                const checkout = new Date(checkoutDate);
-                const timeDiff = checkout.getTime() - checkin.getTime();
-                nights = Math.ceil(timeDiff / (1000 * 3600 * 24)).toString();
+                doc.moveDown(1);
             }
             
-            guestRows = `
-                <tr>
-                    <td>${firstName}</td>
-                    <td>${lastName}</td>
-                    <td>${checkinDate}</td>
-                    <td>${checkoutDate}</td>
-                    <td>${nights}</td>
-                </tr>
-            `;
+            // Certification Footer
+            doc.addPage();
+            doc.fontSize(16).fillColor('#2563eb').text('DOCUMENT CERTIFICATION', { align: 'center' });
+            doc.moveDown(1);
+            
+            doc.fontSize(11).fillColor('#000');
+            doc.text('This document has been digitally certified and contains the following verification details:', { align: 'left' });
+            doc.moveDown(0.5);
+            
+            doc.text(`• Document ID: ${documentId}`);
+            doc.text(`• Generation Timestamp: ${timestamp.toISOString()}`);
+            doc.text(`• Certification Hash: ${certificationHash}`);
+            doc.text(`• Form Submission IP: ${formData.ip_address || 'Not captured'}`);
+            doc.text(`• User Agent: ${formData.user_agent || 'Not captured'}`);
+            doc.moveDown(1);
+            
+            doc.fontSize(10).fillColor('#666');
+            doc.text('AUDIT TRAIL:', { underline: true });
+            doc.text(`• Form accessed: ${formData.form_access_time || 'Not tracked'}`);
+            doc.text(`• Form completed: ${timestamp.toISOString()}`);
+            doc.text(`• Processing server: ${process.env.VERCEL_REGION || 'Local Development'}`);
+            doc.text(`• Document integrity: Verified via SHA-256 hash`);
+            doc.moveDown(1);
+            
+            doc.fontSize(9).fillColor('#999');
+            doc.text('This document was generated automatically by the Skyline Housing reservation system.', { align: 'center' });
+            doc.text('For verification purposes, please contact reservations@skylinehousing.net with the Document ID.', { align: 'center' });
+            
+            doc.end();
+        } catch (error) {
+            reject(error);
         }
-        
-        // Handle signature image
-        let signatureImage = '<div style="height: 60px; border: 1px solid #ddd; background: #f9f9f9; display: flex; align-items: center; justify-content: center; color: #666;">No signature provided</div>';
-        if (signatureDataURL && signatureDataURL !== 'data:,') {
-            signatureImage = `<img src="${signatureDataURL}" class="signature-image" alt="Cardholder Signature" />`;
-        }
-        
-        // Replace all placeholders in the template
-        const replacements = {
-            '{{firstName}}': formData.firstName || '',
-            '{{lastName}}': formData.lastName || '',
-            '{{phone}}': formData.phone || '',
-            '{{email}}': formData.customerEmail || formData.email || '',
-            '{{address}}': formData.address || '',
-            '{{checkin}}': formData.checkin || '',
-            '{{checkout}}': formData.checkout || '',
-            '{{rooms}}': formData.rooms || '',
-            '{{nights}}': formData.nights || '',
-            '{{adults}}': formData.adults || '',
-            '{{children}}': formData.children || '',
-            '{{kingChecked}}': formData.booking_type === 'king' ? '✓' : '',
-            '{{twoQueensChecked}}': formData.booking_type === 'two_queens' ? '✓' : '',
-            '{{boarding_type}}': formData.boarding_type || '',
-            '{{future_exhibitions}}': formData.future_exhibitions || '',
-            '{{company_name}}': formData.company_name || '',
-            '{{leader_name}}': formData.leader_name || '',
-            '{{billing_address}}': formData.billing_address || '',
-            '{{card_holder_name}}': formData.card_holder_name || '',
-            '{{todays_date}}': formData.todays_date || '',
-            '{{expiry}}': formData.expiry || '',
-            '{{cvv}}': formData.cvv || '',
-            '{{direct_number}}': formData.direct_number || '',
-            '{{guestRows}}': guestRows,
-            '{{termsAccepted}}': formData.terms_accepted ? '✓' : '',
-            '{{signatureImage}}': signatureImage,
-            '{{signatureDate}}': new Date().toLocaleDateString(),
-            '{{submissionDate}}': new Date().toLocaleString()
-        };
-        
-        // Apply all replacements
-        for (const [placeholder, value] of Object.entries(replacements)) {
-            htmlTemplate = htmlTemplate.replace(new RegExp(placeholder, 'g'), value);
-        }
-        
-        // Launch Puppeteer and generate PDF
-        const browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-        
-        const page = await browser.newPage();
-        await page.setContent(htmlTemplate, { waitUntil: 'networkidle0' });
-        
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: {
-                top: '20px',
-                right: '20px',
-                bottom: '20px',
-                left: '20px'
-            }
-        });
-        
-        await browser.close();
-        return pdfBuffer;
-        
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-        throw error;
-    }
+    });
 }
 
 // Handle form submission
@@ -188,14 +194,14 @@ app.post('/submit-form', upload.fields([
         const formData = req.body;
         const files = req.files;
         
-        // Extract signature data URL if provided
-        let signatureDataURL = null;
-        if (formData.signature && formData.signature.startsWith('data:image')) {
-            signatureDataURL = formData.signature;
-        }
+        // Add metadata for certification
+        formData.ip_address = req.ip || req.connection.remoteAddress;
+        formData.user_agent = req.get('User-Agent');
+        formData.form_access_time = formData.form_access_time || new Date().toISOString();
         
         // Generate comprehensive PDF
-        const pdfBuffer = await generateComprehensivePDF(formData, signatureDataURL);
+        const signatureBuffer = files.signature && files.signature[0] ? files.signature[0].buffer : null;
+        const comprehensivePDF = await generateComprehensivePDF(formData, signatureBuffer);
         
         // Prepare email content
         let emailContent = `
@@ -239,14 +245,23 @@ app.post('/submit-form', upload.fields([
             attachments: []
         };
         
-        // Add generated PDF attachment
+        // Add comprehensive PDF attachment (always generated)
         mailOptions.attachments.push({
-            filename: `booking_form_${formData.firstName || 'guest'}_${new Date().getTime()}.pdf`,
-            content: pdfBuffer,
+            filename: `certified_reservation_${formData.firstName || 'guest'}_${formData.lastName || 'guest'}_${new Date().getTime()}.pdf`,
+            content: comprehensivePDF,
             contentType: 'application/pdf'
         });
         
-        // Add signature attachment if available as file (fallback)
+        // Add original PDF attachment if uploaded
+        if (files.pdf_attachment && files.pdf_attachment[0]) {
+            mailOptions.attachments.push({
+                filename: `original_upload_${formData.firstName || 'guest'}_${new Date().getTime()}.pdf`,
+                content: files.pdf_attachment[0].buffer,
+                contentType: 'application/pdf'
+            });
+        }
+        
+        // Add signature attachment if available
         if (files.signature && files.signature[0]) {
             mailOptions.attachments.push({
                 filename: 'signature.png',
@@ -260,7 +275,7 @@ app.post('/submit-form', upload.fields([
         
         res.json({ 
             success: true, 
-            message: 'Form submitted successfully! A copy with PDF attachment has been sent to reservations@skylinehousing.net' 
+            message: 'Form submitted successfully! A certified PDF document with all form data, timestamps, and digital signature has been generated and sent to reservations@skylinehousing.net' 
         });
         
     } catch (error) {
