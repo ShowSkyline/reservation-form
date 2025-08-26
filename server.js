@@ -74,14 +74,34 @@ function generateComprehensivePDF(formData, signatureBuffer = null) {
             doc.fontSize(18).fillColor('#000').text('Hotel Reservation Form', { align: 'center' });
             doc.moveDown(1.5);
             
+            // Show & Referral Information Section
+            doc.fontSize(14).fillColor('#2563eb').text('SHOW & REFERRAL INFORMATION', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#000');
+            doc.text(`Show/Event Name: ${formData.show_name || 'N/A'}`);
+            doc.text(`Referral Source: ${formData.referral || 'N/A'}`);
+            doc.moveDown(1);
+            
             // Personal Information Section
             doc.fontSize(14).fillColor('#2563eb').text('PERSONAL INFORMATION', { underline: true });
             doc.moveDown(0.5);
             doc.fontSize(11).fillColor('#000');
-            doc.text(`First Name: ${formData.firstName || 'N/A'}`);
-            doc.text(`Last Name: ${formData.lastName || 'N/A'}`);
-            doc.text(`Phone Number: ${formData.phone || 'N/A'}`);
+            doc.text(`First Name: ${formData.firstName || formData['first_name[]'] || 'N/A'}`);
+            doc.text(`Last Name: ${formData.lastName || formData['last_name[]'] || 'N/A'}`);
+            doc.text(`Phone Number: ${formData.phone || formData.direct_number || 'N/A'}`);
             doc.text(`Email Address: ${formData.customerEmail || formData.email || 'N/A'}`);
+            doc.moveDown(1);
+            
+            // Property Information Section
+            doc.fontSize(14).fillColor('#2563eb').text('PROPERTY INFORMATION', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#000');
+            doc.text(`Hotel Name: ${formData.hotel_name || 'N/A'}`);
+            doc.text(`Number of Rooms: ${formData.rooms || 'N/A'}`);
+            doc.text(`Number of Nights: ${formData.nights || 'N/A'}`);
+            doc.text(`Price / Night: ${formData.price_per_night || 'N/A'}`);
+            doc.text(`Room Type: ${formData.king ? 'King' : formData.two_queens ? 'Two Queens' : 'N/A'}`);
+            doc.text(`Boarding Type: ${formData.boarding_type || 'N/A'}`);
             doc.moveDown(1);
             
             // Reservation Details Section
@@ -90,22 +110,39 @@ function generateComprehensivePDF(formData, signatureBuffer = null) {
             doc.fontSize(11).fillColor('#000');
             doc.text(`Check-in Date: ${formData.checkin || 'N/A'}`);
             doc.text(`Check-out Date: ${formData.checkout || 'N/A'}`);
-            doc.text(`Number of Rooms: ${formData.rooms || 'N/A'}`);
-            doc.text(`Number of Nights: ${formData.nights || 'N/A'}`);
             doc.text(`Adults: ${formData.adults || 'N/A'}`);
             doc.text(`Children: ${formData.children || 'N/A'}`);
-            doc.text(`Room Type: ${formData.room_type || (formData.king ? 'King' : formData.two_queens ? 'Two Queens' : 'N/A')}`);
-            doc.text(`Boarding Type: ${formData.boarding_type || 'N/A'}`);
             doc.moveDown(1);
             
             // Company Information Section
             doc.fontSize(14).fillColor('#2563eb').text('COMPANY INFORMATION', { underline: true });
             doc.moveDown(0.5);
             doc.fontSize(11).fillColor('#000');
-            doc.text(`Company Name: ${formData.company_name || 'N/A'}`);
+            doc.text(`Company Name: ${formData.company || 'N/A'}`);
             doc.text(`Leader Name: ${formData.leader_name || 'N/A'}`);
             doc.text(`Billing Address: ${formData.billing_address || 'N/A'}`);
             doc.text(`Future Exhibitions: ${formData.future_exhibitions || 'N/A'}`);
+            doc.moveDown(1);
+            
+            // Guest Information Section
+            doc.fontSize(14).fillColor('#2563eb').text('GUEST INFORMATION', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#000');
+            
+            // Handle guest arrays
+            const firstNames = Array.isArray(formData['first_name[]']) ? formData['first_name[]'] : [formData['first_name[]']].filter(Boolean);
+            const lastNames = Array.isArray(formData['last_name[]']) ? formData['last_name[]'] : [formData['last_name[]']].filter(Boolean);
+            const checkinDates = Array.isArray(formData['guest_checkin[]']) ? formData['guest_checkin[]'] : [formData['guest_checkin[]']].filter(Boolean);
+            const checkoutDates = Array.isArray(formData['guest_checkout[]']) ? formData['guest_checkout[]'] : [formData['guest_checkout[]']].filter(Boolean);
+            
+            if (firstNames.length > 0) {
+                for (let i = 0; i < firstNames.length; i++) {
+                    doc.text(`Guest ${i + 1}: ${firstNames[i] || 'N/A'} ${lastNames[i] || 'N/A'}`);
+                    doc.text(`  Check-in: ${checkinDates[i] || 'N/A'} | Check-out: ${checkoutDates[i] || 'N/A'}`);
+                }
+            } else {
+                doc.text('No guest information provided');
+            }
             doc.moveDown(1);
             
             // Payment Information Section
