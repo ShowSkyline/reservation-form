@@ -5,7 +5,7 @@ const path = require('path');
 const cors = require('cors');
 const PDFDocument = require('pdfkit');
 const crypto = require('crypto');
-const { PDFDocument: PDFLib } = require('pdf-lib');
+const { PDFDocument: PDFLib, rgb } = require('pdf-lib');
 const fs = require('fs').promises;
 
 const app = express();
@@ -76,11 +76,11 @@ async function enhanceOriginalPDF(originalPDFBuffer, formData, signatureBuffer =
         // Add timestamp and certification info
         const timestamp = new Date().toLocaleString();
         firstPage.drawText(`Digitally processed: ${timestamp}`, {
-            x: 50,
-            y: height - 30,
-            size: 10,
-            color: { r: 0.5, g: 0.5, b: 0.5 }
-        });
+              x: 50,
+              y: height - 30,
+              size: 10,
+              color: rgb(0.5, 0.5, 0.5)
+          });
         
         const pdfBytes = await pdfDoc.save();
         return Buffer.from(pdfBytes);
