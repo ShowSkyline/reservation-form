@@ -65,6 +65,32 @@ async function enhanceOriginalPDF(originalPDFBuffer, formData, signatureBuffer =
               color: rgb(0.5, 0.5, 0.5)
           });
         
+        // Add signature to the original first page if available
+        if (signatureBuffer) {
+            try {
+                const signatureImage = await pdfDoc.embedPng(signatureBuffer);
+                const signatureDims = signatureImage.scale(0.3);
+                
+                // Position signature in bottom right area of the original page
+                firstPage.drawImage(signatureImage, {
+                    x: width - signatureDims.width - 50,
+                    y: 50,
+                    width: signatureDims.width,
+                    height: signatureDims.height,
+                });
+                
+                // Add signature label
+                firstPage.drawText('Digital Signature', {
+                    x: width - signatureDims.width - 50,
+                    y: 40,
+                    size: 8,
+                    color: rgb(0.5, 0.5, 0.5)
+                });
+            } catch (err) {
+                console.error('Error adding signature to original page:', err);
+            }
+        }
+        
         // Add a new page with all form data
         const newPage = pdfDoc.addPage([width, height]);
         let yPosition = height - 50;
