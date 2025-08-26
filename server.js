@@ -56,24 +56,7 @@ async function enhanceOriginalPDF(originalPDFBuffer, formData, signatureBuffer =
         const firstPage = pages[0];
         const { width, height } = firstPage.getSize();
         
-        // Add signature if available
-        if (signatureBuffer) {
-            try {
-                const signatureImage = await pdfDoc.embedPng(signatureBuffer);
-                const signatureDims = signatureImage.scale(0.3);
-                
-                firstPage.drawImage(signatureImage, {
-                    x: width - signatureDims.width - 50,
-                    y: 50,
-                    width: signatureDims.width,
-                    height: signatureDims.height,
-                });
-            } catch (err) {
-                console.error('Error adding signature to PDF:', err);
-            }
-        }
-        
-        // Add timestamp and certification info
+        // Add timestamp and certification info to first page
         const timestamp = new Date().toLocaleString();
         firstPage.drawText(`Digitally processed: ${timestamp}`, {
               x: 50,
@@ -81,6 +64,223 @@ async function enhanceOriginalPDF(originalPDFBuffer, formData, signatureBuffer =
               size: 10,
               color: rgb(0.5, 0.5, 0.5)
           });
+        
+        // Add a new page with all form data
+        const newPage = pdfDoc.addPage([width, height]);
+        let yPosition = height - 50;
+        const lineHeight = 15;
+        const margin = 50;
+        
+        // Title
+        newPage.drawText('FORM SUBMISSION DATA', {
+            x: margin,
+            y: yPosition,
+            size: 16,
+            color: rgb(0, 0, 0)
+        });
+        yPosition -= 30;
+        
+        // Personal Information
+        newPage.drawText('PERSONAL INFORMATION:', {
+            x: margin,
+            y: yPosition,
+            size: 12,
+            color: rgb(0.2, 0.2, 0.8)
+        });
+        yPosition -= lineHeight;
+        
+        const personalInfo = [
+            `First Name: ${formData.firstName || 'N/A'}`,
+            `Last Name: ${formData.lastName || 'N/A'}`,
+            `Phone: ${formData.phone || formData.direct_number || 'N/A'}`,
+            `Email: ${formData.customerEmail || formData.email || 'N/A'}`
+        ];
+        
+        personalInfo.forEach(info => {
+            newPage.drawText(info, {
+                x: margin + 10,
+                y: yPosition,
+                size: 10,
+                color: rgb(0, 0, 0)
+            });
+            yPosition -= lineHeight;
+        });
+        yPosition -= 10;
+        
+        // Hotel Information
+        newPage.drawText('HOTEL INFORMATION:', {
+            x: margin,
+            y: yPosition,
+            size: 12,
+            color: rgb(0.2, 0.2, 0.8)
+        });
+        yPosition -= lineHeight;
+        
+        const hotelInfo = [
+            `Hotel Name: ${formData.hotel_name || 'N/A'}`,
+            `Rooms: ${formData.rooms || 'N/A'}`,
+            `Nights: ${formData.nights || 'N/A'}`,
+            `Boarding Type: ${formData.boarding_type || 'N/A'}`,
+            `Price per Night: ${formData.price_per_night || 'N/A'}`
+        ];
+        
+        hotelInfo.forEach(info => {
+            newPage.drawText(info, {
+                x: margin + 10,
+                y: yPosition,
+                size: 10,
+                color: rgb(0, 0, 0)
+            });
+            yPosition -= lineHeight;
+        });
+        yPosition -= 10;
+        
+        // Company Information
+        newPage.drawText('COMPANY INFORMATION:', {
+            x: margin,
+            y: yPosition,
+            size: 12,
+            color: rgb(0.2, 0.2, 0.8)
+        });
+        yPosition -= lineHeight;
+        
+        const companyInfo = [
+            `Company: ${formData.company || 'N/A'}`,
+            `Leader: ${formData.leader_name || 'N/A'}`,
+            `Billing Address: ${formData.billing_address || 'N/A'}`
+        ];
+        
+        companyInfo.forEach(info => {
+            newPage.drawText(info, {
+                x: margin + 10,
+                y: yPosition,
+                size: 10,
+                color: rgb(0, 0, 0)
+            });
+            yPosition -= lineHeight;
+        });
+        yPosition -= 10;
+        
+        // Guest Information
+        newPage.drawText('GUEST INFORMATION:', {
+            x: margin,
+            y: yPosition,
+            size: 12,
+            color: rgb(0.2, 0.2, 0.8)
+        });
+        yPosition -= lineHeight;
+        
+        // Extract guest data
+        const firstNames = [];
+        const lastNames = [];
+        const checkinDates = [];
+        const checkoutDates = [];
+        
+        Object.keys(formData).forEach(key => {
+            if (key.includes('first_name')) {
+                const value = formData[key];
+                if (Array.isArray(value)) {
+                    firstNames.push(...value.filter(Boolean));
+                } else if (value) {
+                    firstNames.push(value);
+                }
+            } else if (key.includes('last_name')) {
+                const value = formData[key];
+                if (Array.isArray(value)) {
+                    lastNames.push(...value.filter(Boolean));
+                } else if (value) {
+                    lastNames.push(value);
+                }
+            } else if (key.includes('guest_checkin')) {
+                const value = formData[key];
+                if (Array.isArray(value)) {
+                    checkinDates.push(...value.filter(Boolean));
+                } else if (value) {
+                    checkinDates.push(value);
+                }
+            } else if (key.includes('guest_checkout')) {
+                const value = formData[key];
+                if (Array.isArray(value)) {
+                    checkoutDates.push(...value.filter(Boolean));
+                } else if (value) {
+                    checkoutDates.push(value);
+                }
+            }
+        });
+        
+        if (firstNames.length > 0 || lastNames.length > 0) {
+            const maxLength = Math.max(firstNames.length, lastNames.length, checkinDates.length, checkoutDates.length);
+            for (let i = 0; i < maxLength; i++) {
+                newPage.drawText(`Guest ${i + 1}: ${(firstNames[i] || '')} ${(lastNames[i] || '')}`.trim() || 'N/A', {
+                    x: margin + 10,
+                    y: yPosition,
+                    size: 10,
+                    color: rgb(0, 0, 0)
+                });
+                yPosition -= lineHeight;
+                
+                if (checkinDates[i] || checkoutDates[i]) {
+                    newPage.drawText(`  Check-in: ${checkinDates[i] || 'N/A'}, Check-out: ${checkoutDates[i] || 'N/A'}`, {
+                        x: margin + 20,
+                        y: yPosition,
+                        size: 9,
+                        color: rgb(0.3, 0.3, 0.3)
+                    });
+                    yPosition -= lineHeight;
+                }
+            }
+        } else {
+            newPage.drawText('No guest information provided', {
+                x: margin + 10,
+                y: yPosition,
+                size: 10,
+                color: rgb(0, 0, 0)
+            });
+            yPosition -= lineHeight;
+        }
+        yPosition -= 10;
+        
+        // Terms acceptance
+        newPage.drawText('TERMS & CONDITIONS:', {
+            x: margin,
+            y: yPosition,
+            size: 12,
+            color: rgb(0.2, 0.2, 0.8)
+        });
+        yPosition -= lineHeight;
+        
+        newPage.drawText(`Terms Accepted: ${formData.terms_accepted ? 'YES - Digitally Accepted' : 'NO'}`, {
+            x: margin + 10,
+            y: yPosition,
+            size: 10,
+            color: formData.terms_accepted ? rgb(0, 0.6, 0) : rgb(0.8, 0, 0)
+        });
+        yPosition -= 30;
+        
+        // Add signature if available
+        if (signatureBuffer && yPosition > 100) {
+            try {
+                const signatureImage = await pdfDoc.embedPng(signatureBuffer);
+                const signatureDims = signatureImage.scale(0.4);
+                
+                newPage.drawText('DIGITAL SIGNATURE:', {
+                    x: margin,
+                    y: yPosition,
+                    size: 12,
+                    color: rgb(0.2, 0.2, 0.8)
+                });
+                yPosition -= 20;
+                
+                newPage.drawImage(signatureImage, {
+                    x: margin,
+                    y: yPosition - signatureDims.height,
+                    width: signatureDims.width,
+                    height: signatureDims.height,
+                });
+            } catch (err) {
+                console.error('Error adding signature to PDF:', err);
+            }
+        }
         
         const pdfBytes = await pdfDoc.save();
         return Buffer.from(pdfBytes);
