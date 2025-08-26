@@ -632,9 +632,11 @@
         <div id="successMessage" class="success-message" style="display: none;">
             <div class="success-content">
                 <div class="success-icon">✓</div>
-                <h2>Form Submitted Successfully!</h2>
-                <p>Thank you for your reservation request. We will get back to you shortly with an update.</p>
-                <button type="button" class="success-close-btn" onclick="hideSuccessMessage()">Close</button>
+                <h2>Reservation Request Submitted!</h2>
+                <p>🎉 <strong>Congratulations!</strong> Your exclusive travel booking request has been successfully submitted.</p>
+                <p>📧 You will receive a confirmation email shortly with your booking details and next steps.</p>
+                <p>⏰ Our team will review your request and contact you within <strong>24 hours</strong> to finalize your reservation.</p>
+                <button type="button" class="success-close-btn" onclick="hideSuccessMessage()">Got it, thanks!</button>
             </div>
         </div>
         
@@ -882,6 +884,7 @@
 
             
             <div class="message error-message" id="errorMessage"></div>
+            <div class="message success-message" id="successMessage"></div>
 
             <script>
                 function addGuest() {
@@ -914,7 +917,7 @@
 
 
 
-                // Form submission handling is handled by the enhanced handler below
+                // Note: Form submission handling is implemented below with enhanced PDF generation
 
                 // Date range validation and night calculation
                 document.addEventListener('change', function(e) {
@@ -1272,6 +1275,10 @@
                   document.querySelector('.booking-form').addEventListener('submit', async function(e) {
                       e.preventDefault();
                       
+                      // Get submit button for loading state
+                      const submitBtn = document.querySelector('.submit-btn');
+                      const originalBtnText = submitBtn.innerHTML;
+                      
                       // Validation checks
                       const termsCheckbox = document.querySelector('input[name="terms_accepted"]');
                       const guestRows = document.querySelectorAll('#guestTable tbody tr');
@@ -1320,6 +1327,10 @@
                           alert('Please add at least one guest with both first and last name.');
                           return;
                       }
+                      
+                      // Show loading state immediately after validation
+                      submitBtn.disabled = true;
+                      submitBtn.innerHTML = '<span class="loading-spinner"></span>Processing your reservation...';
                       
                       // Get form data
                       const formData = new FormData(this);
@@ -1398,6 +1409,10 @@
                       } catch (error) {
                           console.error('Fetch error:', error);
                           alert('Error submitting form. Please try again.');
+                      } finally {
+                          // Reset button state
+                          submitBtn.disabled = false;
+                          submitBtn.innerHTML = originalBtnText;
                       }
                   });
                  

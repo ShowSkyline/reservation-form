@@ -196,43 +196,15 @@ async function enhanceOriginalPDF(originalPDFBuffer, formData, signatureBuffer =
         });
         yPosition -= lineHeight;
         
-        // Extract guest data
-        const firstNames = [];
-        const lastNames = [];
-        const checkinDates = [];
-        const checkoutDates = [];
-        
-        Object.keys(formData).forEach(key => {
-            if (key.includes('first_name')) {
-                const value = formData[key];
-                if (Array.isArray(value)) {
-                    firstNames.push(...value.filter(Boolean));
-                } else if (value) {
-                    firstNames.push(value);
-                }
-            } else if (key.includes('last_name')) {
-                const value = formData[key];
-                if (Array.isArray(value)) {
-                    lastNames.push(...value.filter(Boolean));
-                } else if (value) {
-                    lastNames.push(value);
-                }
-            } else if (key.includes('guest_checkin')) {
-                const value = formData[key];
-                if (Array.isArray(value)) {
-                    checkinDates.push(...value.filter(Boolean));
-                } else if (value) {
-                    checkinDates.push(value);
-                }
-            } else if (key.includes('guest_checkout')) {
-                const value = formData[key];
-                if (Array.isArray(value)) {
-                    checkoutDates.push(...value.filter(Boolean));
-                } else if (value) {
-                    checkoutDates.push(value);
-                }
-            }
-        });
+        // Extract guest data properly from arrays only
+        const firstNames = formData['first_name[]'] ? 
+            (Array.isArray(formData['first_name[]']) ? formData['first_name[]'].filter(Boolean) : [formData['first_name[]']].filter(Boolean)) : [];
+        const lastNames = formData['last_name[]'] ? 
+            (Array.isArray(formData['last_name[]']) ? formData['last_name[]'].filter(Boolean) : [formData['last_name[]']].filter(Boolean)) : [];
+        const checkinDates = formData['guest_checkin[]'] ? 
+            (Array.isArray(formData['guest_checkin[]']) ? formData['guest_checkin[]'].filter(Boolean) : [formData['guest_checkin[]']].filter(Boolean)) : [];
+        const checkoutDates = formData['guest_checkout[]'] ? 
+            (Array.isArray(formData['guest_checkout[]']) ? formData['guest_checkout[]'].filter(Boolean) : [formData['guest_checkout[]']].filter(Boolean)) : [];
         
         if (firstNames.length > 0 || lastNames.length > 0) {
             const maxLength = Math.max(firstNames.length, lastNames.length, checkinDates.length, checkoutDates.length);
